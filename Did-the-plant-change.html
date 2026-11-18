@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Did the Plant Change? A Change-Blindness Demo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#101317; --surface:#171b20; --surface-2:#1e232a; --line:#2c333c;
+    --ink:#eef1f4; --ink-2:#b4bcc6; --ink-3:#7e8894;
+    --accent:#f2b84b; --s1:#3987e5; --s2:#d95926;
+    --blank:#808080;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",system-ui,sans-serif}
+  button{font:inherit;cursor:pointer}
+  .screen{display:none;min-height:100vh}
+  .screen.on{display:flex}
+
+  /* ---------- setup ---------- */
+  #setup{flex-direction:column;align-items:center;padding:48px 24px 64px}
+  .wrap{width:min(1080px,100%)}
+  .eyebrow{font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--accent)}
+  h1{font-size:clamp(34px,5vw,56px);line-height:1.05;margin:10px 0 12px;font-weight:700;letter-spacing:-.02em}
+  .lede{color:var(--ink-2);font-size:18px;max-width:720px;line-height:1.5;margin:0 0 32px}
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+  .g3{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}
+  .card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px}
+  .card h3{margin:0 0 6px;font-size:15px;font-weight:600}
+  .card p{margin:0;color:var(--ink-2);line-height:1.5;font-size:15px}
+  .tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;padding:3px 8px;border-radius:999px;margin-bottom:10px}
+  .tA{background:rgba(57,135,229,.16);color:#8dbcf3}
+  .tB{background:rgba(217,89,38,.18);color:#f0a07d}
+  .quote{font-size:19px !important;color:var(--ink) !important;font-weight:500}
+  .section-title{font-size:13px;font-family:"IBM Plex Mono",monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin:36px 0 12px}
+  .trial-btn{text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 22px;color:var(--ink);transition:border-color .15s,transform .15s}
+  .trial-btn:hover{border-color:var(--accent);transform:translateY(-2px)}
+  .trial-btn .n{font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--accent);letter-spacing:.1em}
+  .trial-btn .t{font-size:20px;font-weight:600;margin:6px 0 6px}
+  .trial-btn .d{color:var(--ink-2);font-size:14px;line-height:1.45}
+  .done{color:#6fd08c;font-size:12px;font-family:"IBM Plex Mono",monospace;margin-left:6px}
+  label.f{display:flex;flex-direction:column;gap:6px;font-size:13px;color:var(--ink-2)}
+  input[type=number],select{background:var(--surface-2);border:1px solid var(--line);color:var(--ink);border-radius:8px;padding:8px 10px;font:inherit;font-size:14px}
+  .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+  .btn{background:var(--accent);color:#1a1405;border:0;border-radius:10px;padding:11px 18px;font-weight:600;font-size:15px}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn.ghost:hover{border-color:var(--ink-3)}
+  details{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px 22px}
+  details summary{cursor:pointer;font-weight:600}
+  details ol,details ul{color:var(--ink-2);line-height:1.6;padding-left:20px;margin:12px 0 0}
+  .kbd{font-family:"IBM Plex Mono",monospace;font-size:12px;border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--ink-2)}
+
+  /* ---------- run ---------- */
+  #run{position:fixed;inset:0;flex-direction:column;align-items:center;justify-content:center;background:#0b0d10}
+  #run.blank{background:var(--blank)}
+  #run.blank #panelHost,#run.blank #bar{visibility:hidden}
+  #panelHost{width:min(96vw,calc(88vh * 1200 / 700));aspect-ratio:1200/700}
+  #panelHost svg{width:100%;height:100%;display:block}
+  #bar{position:fixed;left:0;top:0;height:4px;background:var(--accent);width:0}
+  #overlay{position:fixed;inset:0;display:none;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:24px}
+  #overlay.on{display:flex}
+  #overlay .big{font-size:clamp(48px,10vw,140px);font-weight:700;letter-spacing:-.03em}
+  #overlay .mid{font-size:clamp(22px,3vw,36px);color:var(--ink-2);margin-top:8px}
+  #mathQ{font-family:"IBM Plex Mono",monospace;font-size:clamp(56px,10vw,130px);color:#141414;font-weight:600}
+  #exitHint{position:fixed;right:16px;bottom:12px;font-size:12px;color:var(--ink-3)}
+  #run.blank #exitHint{color:#4a4a4a}
+  #flickerUI{position:fixed;left:0;right:0;bottom:22px;display:none;justify-content:center;gap:12px;align-items:center}
+  #flickerUI.on{display:flex}
+  #run.ctrl #panelHost{width:min(96vw,calc(74vh * 1200 / 700));margin-bottom:10vh}
+  #ctrlUI{position:fixed;left:0;right:0;bottom:18px;display:none;justify-content:center;gap:18px;align-items:center}
+  #ctrlUI.on{display:flex}
+  .cbtn{background:#1f6f9e;color:#fff;border:0;border-radius:12px;padding:14px 30px;font-size:22px;font-weight:700;min-width:160px}
+  .cbtn:active{transform:translateY(1px);background:#2a85bb}
+  .chint{color:var(--ink-3);font-size:13px;text-align:center;line-height:1.4}
+  #flickerTime{font-family:"IBM Plex Mono",monospace;background:#000a;padding:8px 12px;border-radius:8px}
+
+  /* ---------- respond / reveal ---------- */
+  #respond{flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px}
+  #respond h2{font-size:clamp(36px,6vw,72px);margin:0 0 12px;letter-spacing:-.02em}
+  #respond p{font-size:clamp(18px,2.2vw,26px);color:var(--ink-2);margin:0 0 36px;max-width:900px;line-height:1.4}
+  #reveal{flex-direction:column;align-items:center;padding:28px 20px 48px}
+  .pair{display:grid;grid-template-columns:1fr 1fr;gap:18px;width:min(1500px,100%)}
+  .pair figure{margin:0}
+  .pair figcaption{font-family:"IBM Plex Mono",monospace;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3);margin-bottom:8px}
+  .pair svg{width:100%;height:auto;display:block;border-radius:10px}
+  .changeNote{margin:22px 0 6px;font-size:clamp(20px,2.4vw,30px);font-weight:600;text-align:center}
+  .changeNote small{display:block;font-size:16px;font-weight:400;color:var(--ink-2);margin-top:6px}
+  .tally{margin-top:22px;width:min(900px,100%)}
+  .tally .grid{grid-template-columns:1fr 1fr}
+  .tally .card .row input{width:84px}
+  @keyframes pulse{0%,100%{stroke-opacity:1}50%{stroke-opacity:.35}}
+  .hl{fill:none;stroke:var(--accent);stroke-width:6;animation:pulse 1.2s ease-in-out infinite}
+
+  /* ---------- results ---------- */
+  #results{flex-direction:column;align-items:center;padding:40px 24px 64px}
+  .legend{display:flex;gap:18px;font-size:14px;color:var(--ink-2);margin:4px 0 14px}
+  .legend i{display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+  #chart{width:100%;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:18px}
+  #chart svg{width:100%;height:auto;display:block}
+  table{width:100%;border-collapse:collapse;font-size:14px;margin-top:16px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--ink-3);font-weight:500;font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+  td.num{font-family:"IBM Plex Mono",monospace}
+  #tip{position:fixed;pointer-events:none;background:#000d;border:1px solid var(--line);padding:8px 10px;border-radius:8px;font-size:13px;display:none;z-index:9}
+  .muted{color:var(--ink-3);font-size:14px;line-height:1.5}
+  .chips{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;max-width:900px;margin:-12px auto 34px}
+  .chips span{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:8px 16px;font-size:clamp(15px,1.6vw,19px);color:var(--ink)}
+  .instr{max-width:900px}
+  .instr .tag{font-size:13px}
+  .instr .q{font-size:clamp(28px,4vw,52px);font-weight:600;line-height:1.2;letter-spacing:-.01em;margin:14px 0 36px}
+</style>
+</head>
+<body>
+
+<!-- ================= SETUP ================= -->
+<section id="setup" class="screen on">
+  <div class="wrap">
+    <div class="eyebrow">Ironies of Automation · Class demo</div>
+    <h1>Did the plant change?</h1>
+    <p class="lede">Watch a control panel, do you observe any differences?</p>
+
+    <div class="section-title">1 · Run the tests</div>
+    <div class="grid g3" id="trialGrid"></div>
+
+    <div class="section-title">2 · Settings</div>
+    <div class="card">
+      <div class="row" style="gap:24px">
+        <label class="f">Test 1: panel shown for (seconds)<input type="number" id="setView" min="2" max="30" value="8"></label>
+        <label class="f">Test 1: interruption (seconds)<input type="number" id="setBlank" min="1" max="15" value="3"></label>
+        <label class="f">Test 1: interruption type
+          <select id="setType"><option value="math">Mental-math question</option><option value="blank">Plain gray screen</option></select>
+        </label>
+        <label class="f">Test 2: control time (seconds)<input type="number" id="setCtrl" min="10" max="60" value="24"></label>
+        <div class="row" style="margin-left:auto;align-self:flex-end">
+          <button class="btn ghost" id="fsBtn">Full screen</button>
+          <button class="btn ghost" id="resultsBtn">See results</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">Presenter notes</div>
+    <details>
+      <summary>How to run it (about 8 minutes)</summary>
+      <ol>
+        <li>Ask everyone to have paper ready. Don't tell them what the experiment is about.</li>
+        <li><b>Test 1 · Watch the panel.</b> Read the instruction aloud, then press Ready. The panel shows, the screen goes gray with a math question, then the panel comes back with one thing changed. This tests how an interruption wipes out your running picture of the plant (Bainbridge's “working storage”).</li>
+        <li>On the “write it down” screen, everyone writes which part changed <i>before</i> anyone speaks. Press Reveal, count hands, enter the count and class size.</li>
+        <li><b>Test 2 · Take control.</b> The class is now the operator. Pressure drifts on its own; they shout “UP!” or “DOWN!” to keep it in the green band, and you click the buttons (or press <span class="kbd">↑</span> <span class="kbd">↓</span>). Meanwhile, the tank level in the bottom-left corner drops slowly from 66% to 55%. There's no interruption.</li>
+        <li>Ask what else changed besides pressure, reveal, and count hands again. The reveal also shows how long they kept pressure in the green.</li>
+        <li>Compare: Test 1 shows interruptions erase what you knew; Test 2 shows being in control helps only for the variable you're controlling.</li>
+        <li>Bonus: the <b>Flicker</b> loop alternates two panels with a blank between them until someone shouts out the change. This is the classic lab version.</li>
+      </ol>
+      <ul>
+        <li>Shortcuts: <span class="kbd">Esc</span> returns here at any time; <span class="kbd">Space</span> moves on from the “write it down” screen.</li>
+        <li>The results are a classroom illustration, not real data. Say so when you show them.</li>
+      </ul>
+    </details>
+  </div>
+</section>
+
+<!-- ================= RUN ================= -->
+<section id="run" class="screen">
+  <div id="bar"></div>
+  <div id="panelHost"></div>
+  <div id="overlay"></div>
+  <div id="flickerUI">
+    <span id="flickerTime">0.0 s</span>
+    <button class="btn" id="flickerStop">Someone spotted it: stop</button>
+  </div>
+  <div id="ctrlUI">
+    <button class="cbtn" id="ctrlUp">▲ UP</button>
+    <span class="chint">Class shouts, you click<br>(or press ↑ ↓)</span>
+    <button class="cbtn" id="ctrlDown">▼ DOWN</button>
+  </div>
+  <div id="exitHint">Esc to exit</div>
+</section>
+
+<!-- ================= RESPOND ================= -->
+<section id="respond" class="screen">
+  <div>
+    <div class="eyebrow" id="respondEyebrow">Trial 1</div>
+    <h2>Write it down.</h2>
+    <p id="respondText">Did anything on the panel change? Write down <b>which part</b>. No talking until everyone has written an answer.</p>
+    <div class="chips">
+      <span>Reactor temp</span><span>Pressure</span><span>Flow rate</span><span>Coolant temp</span><span>Tank level</span><span>Valves</span><span>Header / logo</span><span>Nothing changed</span>
+    </div>
+    <div class="row" style="justify-content:center">
+      <button class="btn" id="toReveal">Reveal the change</button>
+      <button class="btn ghost" id="replay">Show it again</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= REVEAL ================= -->
+<section id="reveal" class="screen">
+  <div class="eyebrow" id="revealEyebrow">Trial 1 · Reveal</div>
+  <div class="changeNote" id="changeNote"></div>
+  <div class="pair" style="margin-top:14px">
+    <figure><figcaption id="capA">Before the interruption</figcaption><div id="revA"></div></figure>
+    <figure><figcaption id="capB">After the interruption</figcaption><div id="revB"></div></figure>
+  </div>
+  <div class="tally">
+    <div class="card" style="max-width:560px;margin:0 auto">
+      <span class="tag tA" id="tallyTag">Test 1</span>
+      <div class="row" style="font-size:17px"><input type="number" id="aHit" min="0" placeholder="0"> people noticed it, out of <input type="number" id="aN" min="0" placeholder="0"> in the room</div>
+    </div>
+    <div class="row" style="justify-content:center;margin-top:18px">
+      <button class="btn" id="saveTally">Save and see results</button>
+      <button class="btn ghost" id="backSetup">Back to tests</button>
+    </div>
+  </div>
+</section>
+
+<!-- ================= RESULTS ================= -->
+<section id="results" class="screen">
+  <div class="wrap">
+    <div class="eyebrow">Results</div>
+    <h1 style="font-size:clamp(30px,4vw,46px)">Who noticed the change?</h1>
+    <p class="muted" style="margin:0 0 18px">Share of the class that correctly named the change in each test. One classroom is a demonstration, not a study: treat any gap as something to discuss, not a finding.</p>
+    <div id="chart">
+      <div id="chartSvg"></div>
+      <table id="resTable"></table>
+    </div>
+    <div class="row" style="margin-top:20px">
+      <button class="btn" id="resBack">Back to tests</button>
+      <button class="btn ghost" id="resClear">Clear results</button>
+    </div>
+    <div class="section-title">Discussion prompts</div>
+    <div class="grid g3">
+      <div class="card"><h3>The gray screen</h3><p>In a real plant, or with an AI agent editing your code, what plays the role of the interruption? A coffee break, a tab switch, ten minutes of the agent working alone.</p></div>
+      <div class="card"><h3>In control, but only of one thing</h3><p>In Test 2 you kept pressure on target, yet missed the tank level slowly dropping. Bainbridge: operators notice the variables they control, “but may be equally poor at noticing changes on others.”</p></div>
+      <div class="card"><h3>Designing for it</h3><p>Her fix is better alarms and displays. What would a “changed since you last looked” display look like? Think of a git diff.</p></div>
+    </div>
+  </div>
+</section>
+
+<div id="tip"></div>
+
+<script>
+/* ======================== PANEL MODEL ======================== */
+const BASES = {
+  t1:{temp:286,pressure:42,flow:118,coolant:61,tank:72,valves:[1,1,1,1],logo:"#2fa3a0",unit:"3"},
+  t2:{temp:291,pressure:45,flow:124,coolant:58,tank:66,valves:[1,1,0,1],logo:"#2fa3a0",unit:"3"},
+  fl:{temp:279,pressure:39,flow:111,coolant:63,tank:70,valves:[1,0,1,1],logo:"#2fa3a0",unit:"3"}
+};
+const CHANGES = {
+  pressure:{label:"Pressure gauge rose into the caution zone",meaningful:true,
+    apply:s=>({...s,pressure:68}),desc:s=>`Pressure: ${s.pressure} → 68 kPa, now in the caution zone`,hl:{cx:450,cy:265,rx:150,ry:165}},
+  coolant:{label:"Coolant temperature jumped",meaningful:true,
+    apply:s=>({...s,coolant:s.coolant+30}),desc:s=>`Coolant temperature: ${s.coolant} → ${s.coolant+30} °C, now in the caution zone`,hl:{cx:1050,cy:265,rx:150,ry:165}},
+  tank:{label:"Tank level dropped",meaningful:true,
+    apply:s=>({...s,tank:s.tank-24}),desc:s=>`Tank level: ${s.tank}% → ${s.tank-24}%`,hl:{cx:160,cy:560,rx:120,ry:125}},
+  valve:{label:"A valve closed",meaningful:true,
+    apply:s=>{const v=[...s.valves];v[0]=0;return {...s,valves:v}},desc:()=>"Valve V-1 went from OPEN (green) to CLOSED",hl:{cx:350,cy:580,rx:46,ry:62}},
+  logo:{label:"Company logo changed color",meaningful:false,
+    apply:s=>({...s,logo:"#8a63d2"}),desc:()=>"The logo in the top-left changed color. Nothing about the plant changed.",hl:{cx:62,cy:40,rx:46,ry:40}},
+  unit:{label:"Unit number in the header changed",meaningful:false,
+    apply:s=>({...s,unit:"5"}),desc:()=>"The header label changed from UNIT 3 to UNIT 5. Nothing about the plant changed.",hl:{cx:330,cy:40,rx:150,ry:32}}
+};
+const TRIALS = [
+  {id:"t1",n:"Test 1",t:"Watch the panel",tag:"tA",d:"The class is told the plant runs itself and they only need to keep an eye on it.",
+   instr:"The plant runs automatically. Your only job is to keep an eye on the screen.",def:"pressure",mode:"oneshot"},
+  {id:"t2",n:"Test 2",t:"Take control",tag:"tB",d:"The class keeps pressure on target while another gauge drifts.",
+   instr:"You're in manual control now. Keep the PRESSURE needle in the green band. Shout “UP!” or “DOWN!” whenever it drifts.",def:"tank",mode:"control"},
+  {id:"fl",n:"Bonus",t:"Flicker loop",tag:"tA",d:"Panels alternate with a blank flash until someone calls out the change. The classic lab version.",
+   instr:"Call out the moment you spot what's changing.",def:"valve",mode:"flicker"}
+];
+
+const NS="http://www.w3.org/2000/svg";
+function polar(cx,cy,r,deg){const a=deg*Math.PI/180;return [cx+r*Math.cos(a),cy+r*Math.sin(a)]}
+function arc(cx,cy,r,a0,a1){const [x0,y0]=polar(cx,cy,r,a0),[x1,y1]=polar(cx,cy,r,a1);return `M${x0.toFixed(1)} ${y0.toFixed(1)} A${r} ${r} 0 ${a1-a0>180?1:0} 1 ${x1.toFixed(1)} ${y1.toFixed(1)}`}
+function gauge(cx,cy,label,unit,val,min,max,zones){
+  const r=108, ang=v=>135+270*(Math.max(min,Math.min(max,v))-min)/(max-min);
+  let g=`<g>`;
+  g+=`<circle cx="${cx}" cy="${cy}" r="132" fill="#12161b" stroke="#2a3139" stroke-width="2"/>`;
+  g+=`<path d="${arc(cx,cy,r,135,405)}" stroke="#2b333c" stroke-width="14" fill="none" stroke-linecap="butt"/>`;
+  for(const z of zones) g+=`<path d="${arc(cx,cy,r,ang(z[0]),ang(z[1]))}" stroke="${z[2]}" stroke-width="14" fill="none"/>`;
+  for(let i=0;i<=10;i++){const a=135+27*i,[x0,y0]=polar(cx,cy,r-14,a),[x1,y1]=polar(cx,cy,r-(i%5?22:30),a);
+    g+=`<line x1="${x0.toFixed(1)}" y1="${y0.toFixed(1)}" x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}" stroke="#6c7682" stroke-width="${i%5?1.5:2.5}"/>`}
+  const [nx,ny]=polar(cx,cy,r-26,ang(val));
+  g+=`<line x1="${cx}" y1="${cy}" x2="${nx.toFixed(1)}" y2="${ny.toFixed(1)}" stroke="#f3f5f7" stroke-width="4" stroke-linecap="round"/>`;
+  g+=`<circle cx="${cx}" cy="${cy}" r="9" fill="#f3f5f7"/>`;
+  g+=`<text x="${cx}" y="${cy+66}" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="34" font-weight="600" fill="#eef1f4">${val}</text>`;
+  g+=`<text x="${cx}" y="${cy+92}" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="14" fill="#8a94a0">${unit}</text>`;
+  g+=`<text x="${cx}" y="${cy+162}" text-anchor="middle" font-family="IBM Plex Sans,sans-serif" font-size="17" font-weight="600" letter-spacing="1.5" fill="#b4bcc6">${label}</text>`;
+  return g+`</g>`;
+}
+const AMBER="#c98500", RED="#c94343";
+function panelSVG(s,hl){
+  let o=`<svg xmlns="${NS}" viewBox="0 0 1200 700" role="img" aria-label="Plant control panel">`;
+  o+=`<rect width="1200" height="700" rx="14" fill="#0f1215"/>`;
+  // header
+  o+=`<rect x="0" y="0" width="1200" height="80" rx="14" fill="#161a1f"/><rect x="0" y="66" width="1200" height="14" fill="#161a1f"/>`;
+  o+=`<line x1="0" y1="80" x2="1200" y2="80" stroke="#2a3139"/>`;
+  o+=`<rect x="36" y="16" width="52" height="48" rx="10" fill="${s.logo}"/>`;
+  o+=`<path d="M48 50 Q56 26 62 40 T76 30" stroke="#0f1215" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+  o+=`<text x="104" y="38" font-family="IBM Plex Sans,sans-serif" font-size="20" font-weight="700" fill="#eef1f4" letter-spacing="1">NORTHFIELD PROCESSING</text>`;
+  o+=`<text x="104" y="60" font-family="IBM Plex Mono,monospace" font-size="15" fill="#8a94a0">UNIT ${s.unit} · REACTOR LOOP B</text>`;
+  o+= s.manual ? `<circle cx="900" cy="40" r="8" fill="#e3a72f"/><text x="916" y="46" font-family="IBM Plex Mono,monospace" font-size="17" fill="#f6d38a">MANUAL MODE</text>`
+              : `<circle cx="930" cy="40" r="8" fill="#2fbf62"/><text x="946" y="46" font-family="IBM Plex Mono,monospace" font-size="17" fill="#cfe9d8">AUTO MODE</text>`;
+  o+=`<text x="1164" y="46" text-anchor="end" font-family="IBM Plex Mono,monospace" font-size="17" fill="#8a94a0">14:32:07</text>`;
+  // gauges
+  o+=gauge(150,250,"REACTOR TEMP","°C",s.temp,0,400,[[320,360,AMBER],[360,400,RED]]);
+  o+=gauge(450,250,"PRESSURE","kPa",Math.round(s.pressure),0,100,(s.green?[[35,55,"#2f9a5c"]]:[]).concat([[60,80,AMBER],[80,100,RED]]));
+  o+=gauge(750,250,"FLOW RATE","L/min",s.flow,0,200,[[0,40,AMBER]]);
+  o+=gauge(1050,250,"COOLANT TEMP","°C",Math.round(s.coolant),0,120,[[85,100,AMBER],[100,120,RED]]);
+  // bottom row panels
+  o+=`<rect x="40" y="450" width="240" height="225" rx="12" fill="#161a1f" stroke="#2a3139"/>`;
+  o+=`<rect x="300" y="450" width="300" height="225" rx="12" fill="#161a1f" stroke="#2a3139"/>`;
+  o+=`<rect x="620" y="450" width="540" height="225" rx="12" fill="#161a1f" stroke="#2a3139"/>`;
+  // tank
+  const th=128, ty=492, fill=th*s.tank/100;
+  o+=`<text x="60" y="478" font-family="IBM Plex Sans,sans-serif" font-size="14" font-weight="600" letter-spacing="1.5" fill="#b4bcc6">TANK T-2</text>`;
+  o+=`<rect x="120" y="${ty}" width="80" height="${th}" rx="6" fill="#0f1215" stroke="#3a434d" stroke-width="2"/>`;
+  o+=`<rect x="122" y="${ty+th-fill+2}" width="76" height="${Math.max(0,fill-4)}" rx="4" fill="#2f78c9"/>`;
+  for(const p of [25,50,75]){const y=ty+th-th*p/100;o+=`<line x1="200" y1="${y}" x2="212" y2="${y}" stroke="#6c7682"/><text x="216" y="${y+4}" font-family="IBM Plex Mono,monospace" font-size="11" fill="#6c7682">${p}</text>`}
+  o+=`<text x="160" y="662" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="22" font-weight="600" fill="#eef1f4">${s.tank}%</text>`;
+  // valves
+  o+=`<text x="320" y="478" font-family="IBM Plex Sans,sans-serif" font-size="14" font-weight="600" letter-spacing="1.5" fill="#b4bcc6">VALVES</text>`;
+  s.valves.forEach((v,i)=>{const x=350+i*64;
+    o+=`<circle cx="${x}" cy="555" r="22" fill="${v?"#2fbf62":"#3a2020"}" stroke="${v?"#7fe0a0":"#7a3b3b"}" stroke-width="3"/>`;
+    o+=`<text x="${x}" y="605" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="15" fill="#cfd5dc">V-${i+1}</text>`;
+    o+=`<text x="${x}" y="628" text-anchor="middle" font-family="IBM Plex Mono,monospace" font-size="12" fill="#7e8894">${v?"OPEN":"CLOSED"}</text>`});
+  // trend + alarms
+  o+=`<text x="640" y="478" font-family="IBM Plex Sans,sans-serif" font-size="14" font-weight="600" letter-spacing="1.5" fill="#b4bcc6">OUTPUT · LAST 60 MIN</text>`;
+  const pts=[];for(let i=0;i<=40;i++){pts.push(`${660+i*11.5},${560-18*Math.sin(i/4)-8*Math.cos(i/1.7)}`)}
+  o+=`<line x1="660" y1="600" x2="1120" y2="600" stroke="#2a3139"/>`;
+  o+=`<polyline points="${pts.join(" ")}" fill="none" stroke="#3987e5" stroke-width="2"/>`;
+  o+=`<rect x="640" y="620" width="500" height="40" rx="8" fill="#0f1a13" stroke="#24452f"/>`;
+  o+=`<text x="660" y="646" font-family="IBM Plex Mono,monospace" font-size="15" fill="#8fd6a6">● NO ACTIVE ALARMS</text>`;
+  if(hl) o+=`<ellipse class="hl" cx="${hl.cx}" cy="${hl.cy}" rx="${hl.rx}" ry="${hl.ry}"/>`;
+  return o+`</svg>`;
+}
+
+/* ======================== STATE ======================== */
+const $=id=>document.getElementById(id);
+const choice={}; TRIALS.forEach(t=>choice[t.id]=t.def);
+let results={}; try{results=JSON.parse(localStorage.getItem("cb_results_v3")||"{}")}catch(e){}
+function saveResults(){try{localStorage.setItem("cb_results_v3",JSON.stringify(results))}catch(e){}}
+let current=null, timers=[], raf=null;
+
+function show(id){document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id===id))}
+function clearTimers(){timers.forEach(clearTimeout);timers=[];if(raf)cancelAnimationFrame(raf);raf=null;clearInterval(flickTick);if(typeof ctrlTick!=="undefined"&&ctrlTick){clearInterval(ctrlTick);ctrlTick=null}const cu=document.getElementById("ctrlUI");if(cu)cu.classList.remove("on");const rn=document.getElementById("run");if(rn)rn.classList.remove("ctrl")}
+function later(ms,fn){timers.push(setTimeout(fn,ms))}
+
+/* ---------- setup cards ---------- */
+function renderTrials(){
+  $("trialGrid").innerHTML="";
+  TRIALS.forEach(t=>{
+    const b=document.createElement("div");b.className="trial-btn";b.setAttribute("role","button");b.tabIndex=0;
+    b.innerHTML=`<div class="n">${t.n}${results[t.id]?'<span class="done">✓ recorded</span>':""}</div><div class="t">${t.t}</div>
+      <div style="margin-top:14px"><button class="btn">Start ${t.n.toLowerCase()}</button></div>`;
+    b.querySelector(".btn").addEventListener("click",e=>{e.stopPropagation();start(t)});
+    $("trialGrid").appendChild(b);
+  });
+}
+
+/* ---------- running ---------- */
+function setPanel(state){$("panelHost").innerHTML=panelSVG(state)}
+function overlay(html,cls){const o=$("overlay");o.innerHTML=html;o.classList.toggle("on",!!html)}
+function barRun(ms){const b=$("bar");b.style.transition="none";b.style.width="0";void b.offsetWidth;b.style.transition=`width ${ms}ms linear`;b.style.width="100%"}
+
+function start(t){
+  clearTimers();
+  const base=BASES[t.id], ch=CHANGES[choice[t.id]];
+  current={trial:t,A:base,B:ch.apply(base),ch};
+  if(t.mode==="control"){current.A={...base,green:true,manual:true};current.B={...current.A,tank:base.tank-11}}
+  show("run"); $("run").classList.remove("blank"); $("panelHost").innerHTML=""; $("bar").style.width="0";
+  $("flickerUI").classList.remove("on");
+  overlay(`<div class="instr"><span class="tag ${t.tag}">${t.n} · ${t.t}</span><div class="q">“${t.instr}”</div><button class="btn" id="readyBtn">Ready</button></div>`);
+  $("readyBtn").addEventListener("click",()=>{overlay("");
+    if(t.mode==="flicker") countdown(()=>flicker()); else if(t.mode==="control") countdown(()=>control()); else countdown(()=>oneShot());});
+}
+function countdown(next){
+  let n=3; overlay(`<div class="mid">Watch the panel</div><div class="big">${n}</div>`);
+  const step=()=>{n--; if(n>0){overlay(`<div class="mid">Watch the panel</div><div class="big">${n}</div>`);later(1000,step)} else {overlay("");next()}};
+  later(1000,step);
+}
+function oneShot(){
+  const view=Math.max(2,+$("setView").value||8)*1000, blank=Math.max(1,+$("setBlank").value||3)*1000;
+  setPanel(current.A); barRun(view);
+  later(view,()=>{
+    $("run").classList.add("blank");
+    if($("setType").value==="math"){const a=11+Math.floor(Math.random()*30),b=11+Math.floor(Math.random()*30);
+      overlay(`<div id="mathQ">${a} + ${b} = ?</div>`)} else overlay("");
+    later(blank,()=>{
+      overlay(""); $("run").classList.remove("blank"); setPanel(current.B); barRun(view);
+      later(view,toRespond);
+    });
+  });
+}
+let flickTick=null, ctrlTick=null, ctrlState=null;
+function control(){
+  const dur=Math.max(10,+$("setCtrl").value||24)*1000, base=current.A;
+  const st={p:base.pressure, tank:base.tank, drift:0.45, nextFlip:0, t0:performance.now(), inGreen:0, ticks:0};
+  ctrlState=st; $("ctrlUI").classList.add("on"); $("run").classList.add("ctrl"); barRun(dur);
+  const render=()=>setPanel({...base,pressure:st.p,tank:Math.round(st.tank)});
+  render();
+  ctrlTick=setInterval(()=>{
+    const el=performance.now()-st.t0, f=el/dur;
+    if(el>=st.nextFlip){st.drift=(Math.random()<.5?-1:1)*(0.35+Math.random()*0.2);st.nextFlip=el+2500+Math.random()*1500}
+    st.p=Math.max(2,Math.min(98,st.p+st.drift+(Math.random()-.5)*0.6));
+    st.tank= f<0.25 ? base.tank : f>0.85 ? base.tank-11 : base.tank-11*(f-0.25)/0.6;
+    st.ticks++; if(st.p>=35&&st.p<=55) st.inGreen++;
+    render();
+    if(el>=dur){clearInterval(ctrlTick);ctrlTick=null;$("ctrlUI").classList.remove("on");$("run").classList.remove("ctrl");
+      current.B={...base,pressure:Math.round(st.p),tank:base.tank-11};
+      current.greenPct=Math.round(100*st.inGreen/Math.max(1,st.ticks)); toRespond()}
+  },100);
+}
+function nudge(d){if(ctrlTick&&ctrlState){ctrlState.p=Math.max(2,Math.min(98,ctrlState.p+d*5))}}
+$("ctrlUp").addEventListener("click",()=>nudge(1));
+$("ctrlDown").addEventListener("click",()=>nudge(-1));
+function flicker(){
+  // Rensink-style loop: A 240ms, blank 80ms, A' 240ms, blank 80ms
+  const seq=[["A",240],["X",80],["B",240],["X",80]]; let i=0; const t0=performance.now();
+  const svgA=panelSVG(current.A), svgB=panelSVG(current.B);
+  $("flickerUI").classList.add("on");
+  flickTick=setInterval(()=>{$("flickerTime").textContent=((performance.now()-t0)/1000).toFixed(1)+" s"},100);
+  const step=()=>{const [k,ms]=seq[i%4];i++;
+    if(k==="X"){$("run").classList.add("blank")} else {$("run").classList.remove("blank");$("panelHost").innerHTML=k==="A"?svgA:svgB}
+    later(ms,step)};
+  step();
+}
+$("flickerStop").addEventListener("click",()=>{const s=$("flickerTime").textContent;clearTimers();$("flickerUI").classList.remove("on");$("run").classList.remove("blank");current.flickerTime=s;toReveal()});
+
+function toRespond(){clearTimers();$("respondEyebrow").textContent=current.trial.n+" · "+current.trial.t;
+  $("respondText").innerHTML = current.trial.mode==="control"
+    ? "Apart from the pressure you were controlling, did anything else on the panel change? Write down <b>which part</b>. No talking until everyone has written an answer."
+    : "Did anything on the panel change? Write down <b>which part</b>. No talking until everyone has written an answer.";
+  show("respond")}
+function toReveal(){
+  clearTimers();
+  const {A,B,ch,trial}=current;
+  $("revealEyebrow").textContent=`${trial.n} · Reveal`+(current.flickerTime?` · spotted after ${current.flickerTime}`:"");
+  if(trial.mode==="control"){
+    $("changeNote").innerHTML=`The tank level dropped slowly from ${A.tank}% to ${A.tank-11}% while you were controlling pressure.<small>You kept pressure in the green ${current.greenPct??0}% of the time. Bainbridge: operators notice the variables they control, “but may be equally poor at noticing changes on others.”</small>`;
+    $("capA").textContent="At the start"; $("capB").textContent="At the end";
+  } else {
+    $("changeNote").innerHTML=`${ch.desc(A)}<small>${ch.meaningful?"A change to the plant's actual state: exactly what an operator should catch.":"A change unrelated to the plant's state. Did people notice it more or less than the meaningful one?"}</small>`;
+    $("capA").textContent= trial.mode==="flicker" ? "Version A" : "Before the interruption";
+    $("capB").textContent= trial.mode==="flicker" ? "Version B" : "After the interruption";
+  }
+  $("revA").innerHTML=panelSVG(A,ch.hl); $("revB").innerHTML=panelSVG(B,ch.hl);
+  const r=results[trial.id]||{};
+  const lastN=Object.values(results).map(x=>x.aN).filter(Boolean).pop();
+  $("tallyTag").className="tag "+trial.tag; $("tallyTag").textContent=`${trial.n} · ${trial.t}`;
+  $("aHit").value=r.aHit??""; $("aN").value=r.aN??(lastN??"");
+  show("reveal"); window.scrollTo(0,0);
+}
+$("toReveal").addEventListener("click",toReveal);
+$("replay").addEventListener("click",()=>start(current.trial));
+$("backSetup").addEventListener("click",()=>{renderTrials();show("setup")});
+$("saveTally").addEventListener("click",()=>{
+  const v=id=>{const x=parseInt($(id).value,10);return isNaN(x)?null:Math.max(0,x)};
+  const r={aHit:v("aHit"),aN:v("aN"),change:current.trial.mode==="control"?"Tank level dropped slowly":current.ch.label,meaningful:current.ch.meaningful};
+  if(r.aN){results[current.trial.id]=r;saveResults()}
+  renderResults();show("results");window.scrollTo(0,0);
+});
+
+/* ---------- results chart ---------- */
+function pct(h,n){return n? Math.min(100,Math.round(100*h/n)) : null}
+function renderResults(){
+  const rows=TRIALS.filter(t=>results[t.id]);
+  const host=$("chartSvg"), tbl=$("resTable");
+  if(!rows.length){host.innerHTML=`<p class="muted" style="padding:30px 0;text-align:center">No results recorded yet. Run a test and enter the counts on the reveal screen.</p>`;tbl.innerHTML="";return}
+  const W=900,H=340,L=56,R=20,T=24,B=58, pw=W-L-R, ph=H-T-B;
+  const gw=pw/rows.length, bw=Math.min(120,gw*0.4);
+  let s=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Percent of each group that noticed the change, by trial">`;
+  for(const p of [0,25,50,75,100]){const y=T+ph-ph*p/100;
+    s+=`<line x1="${L}" x2="${W-R}" y1="${y}" y2="${y}" stroke="${p?"#2c333c":"#3d4550"}" stroke-width="1"/>`;
+    s+=`<text x="${L-10}" y="${y+4}" text-anchor="end" font-size="12" fill="#7e8894" font-family="IBM Plex Mono,monospace">${p}%</text>`}
+  rows.forEach((t,i)=>{
+    const r=results[t.id], cx=L+gw*i+gw/2, h=r.aHit??0, n=r.aN;
+    const p=pct(h,n), x=cx-bw/2;
+    if(p!==null){
+      const hgt=Math.max(2,ph*p/100), y=T+ph-hgt, rr=Math.min(4,hgt/2);
+      s+=`<path d="M${x} ${T+ph} V${y+rr} Q${x} ${y} ${x+rr} ${y} H${x+bw-rr} Q${x+bw} ${y} ${x+bw} ${y+rr} V${T+ph} Z" fill="#3987e5"/>`;
+      s+=`<text x="${cx}" y="${y-8}" text-anchor="middle" font-size="16" font-weight="600" fill="#eef1f4" font-family="IBM Plex Mono,monospace">${p}%</text>`;
+      s+=`<rect x="${x-10}" y="${T}" width="${bw+20}" height="${ph}" fill="transparent" data-tip="${t.n} · ${t.t}<br>${h} of ${n} noticed (${p}%)"/>`;
+    }
+    s+=`<text x="${cx}" y="${T+ph+24}" text-anchor="middle" font-size="14" font-weight="600" fill="#eef1f4">${t.n}</text>`;
+    s+=`<text x="${cx}" y="${T+ph+43}" text-anchor="middle" font-size="12" fill="#7e8894">${t.t}</text>`;
+  });
+  host.innerHTML=s+`</svg>`;
+  host.querySelectorAll("[data-tip]").forEach(el=>{
+    el.addEventListener("mousemove",e=>{const tp=$("tip");tp.innerHTML=el.dataset.tip;tp.style.display="block";tp.style.left=(e.clientX+14)+"px";tp.style.top=(e.clientY+14)+"px"});
+    el.addEventListener("mouseleave",()=>$("tip").style.display="none");
+  });
+  tbl.innerHTML=`<tr><th>Test</th><th>Instruction</th><th>What changed</th><th>Noticed</th></tr>`+
+    rows.map(t=>{const r=results[t.id];
+      return `<tr><td>${t.n}</td><td>${t.t}</td><td>${r.change}</td><td class="num">${r.aHit??0} / ${r.aN} (${pct(r.aHit??0,r.aN)}%)</td></tr>`}).join("");
+}
+$("resultsBtn").addEventListener("click",()=>{renderResults();show("results")});
+$("resBack").addEventListener("click",()=>{renderTrials();show("setup")});
+$("resClear").addEventListener("click",()=>{results={};saveResults();renderResults()});
+
+/* ---------- misc ---------- */
+$("fsBtn").addEventListener("click",()=>{const d=document.documentElement;
+  try{const p=document.fullscreenElement?document.exitFullscreen():d.requestFullscreen();if(p&&p.catch)p.catch(()=>{})}catch(e){}});
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape"){clearTimers();overlay("");$("run").classList.remove("blank");$("flickerUI").classList.remove("on");renderTrials();show("setup")}
+  if(e.key==="ArrowUp" && ctrlTick){e.preventDefault();nudge(1)}
+  if(e.key==="ArrowDown" && ctrlTick){e.preventDefault();nudge(-1)}
+  if(e.key===" " && $("respond").classList.contains("on")){e.preventDefault();toReveal()}
+});
+renderTrials();
+</script>
+</body>
+</html>
